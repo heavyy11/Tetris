@@ -1,8 +1,8 @@
 package tetris;
 
-import javax.swing.JPanel;
-import java.awt.Color;
-import java.awt.Graphics;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
 
 public class GamePanel extends JPanel {
 
@@ -19,8 +19,32 @@ public class GamePanel extends JPanel {
 
         setBackground(Color.BLACK);
 
-        piece = new IPiece();
+        piece = new OPiece();
+        
+        bindKey("LEFT", "moveLeft", () -> piece.moveLeft());
+        bindKey("RIGHT", "moveRight", () -> piece.moveRight());
+        bindKey("DOWN", "moveDown", () -> piece.moveDown());
+        bindKey("UP", "rotate", () -> piece.rotate());
+    }
+    
+    private void bindKey(String key, String name, Runnable action){
+        
+        getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
+                KeyStroke.getKeyStroke(key), name
+        );
 
+        getActionMap().put(name, new AbstractAction() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                action.run();
+
+                repaint();
+
+            }
+
+        });
     }
 
     @Override

@@ -10,7 +10,7 @@ public class PieceTest {
         System.out.println("Y: " + piece.getY());
         System.out.println("Color: " + piece.getColor());
 
-        int[][] shape = piece.getShape();
+        int[][] shape = piece.getBaseShape();
 
         for (int i = 0; i < shape.length; i++) {
 

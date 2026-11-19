@@ -5,7 +5,7 @@ import java.awt.Color;
 public class TPiece extends Tetromino{
 
     @Override
-    public int[][] getShape() {
+    public int[][] getBaseShape() {
         return new int[][]{
                 {0, 1, 0, 0},
                 {1, 1, 1, 0},

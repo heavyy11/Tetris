@@ -5,7 +5,7 @@ import java.awt.Color;
 public class ZPiece extends Tetromino{
 
     @Override
-    public int[][] getShape() {
+    public int[][] getBaseShape() {
         return new int[][]{
                 {1, 1, 0, 0},
                 {0, 1, 1, 0},
