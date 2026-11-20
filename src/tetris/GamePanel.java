@@ -14,17 +14,28 @@ public class GamePanel extends JPanel {
     private final int BOARD_Y = 25;
 
     private Tetromino piece;
+    
+    private GameBoard board = new GameBoard();
+    
+    private Timer fallTimer;
 
     public GamePanel() {
 
         setBackground(Color.BLACK);
 
-        piece = new OPiece();
+        piece = new JPiece();
         
-        bindKey("LEFT", "moveLeft", () -> piece.moveLeft());
-        bindKey("RIGHT", "moveRight", () -> piece.moveRight());
-        bindKey("DOWN", "moveDown", () -> piece.moveDown());
+        bindKey("LEFT", "moveLeft", () -> movePiece(-1, 0));
+        bindKey("RIGHT", "moveRight", () -> movePiece(1, 0));
+        bindKey("DOWN", "moveDown", () -> movePiece(0, 1));
         bindKey("UP", "rotate", () -> piece.rotate());
+        
+        fallTimer = new Timer(1000, e -> {
+            movePiece(0, 1);
+            repaint();
+        });
+
+        fallTimer.start();  
     }
     
     private void bindKey(String key, String name, Runnable action){
@@ -45,6 +56,25 @@ public class GamePanel extends JPanel {
             }
 
         });
+    }
+    
+    private void movePiece(int dx, int dy) {
+
+        int newX = piece.getX() + dx;
+        int newY = piece.getY() + dy;
+
+        if (board.isValidPosition(piece.getShape(), newX, newY)) {
+
+            if (dx < 0) {
+                piece.moveLeft();
+            } else if (dx > 0) {
+                piece.moveRight();
+            } else if (dy > 0) {
+                piece.moveDown();
+            }
+
+        }
+
     }
 
     @Override

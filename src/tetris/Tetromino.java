@@ -21,17 +21,36 @@ public abstract class Tetromino {
         
         int[][] shape = getBaseShape();
         
+        if (this instanceof OPiece) {
+            return shape;
+        }
+        
         for(int r = 0; r < rotation; r++){
             
             int[][] rotated = new int[4][4];
             
-            for(int row = 0; row < 4; row++){
-                
-                for(int col = 0; col < 4; col++){
-                    
-                    rotated[col][3 - row] = shape[row][col];
-                    
+            if(this instanceof IPiece){
+            
+                for(int row = 0; row < 4; row++){
+
+                    for(int col = 0; col < 4; col++){
+
+                        rotated[col][3 - row] = shape[row][col];
+
+                    }
                 }
+                
+            } else {
+                
+                for(int row = 0; row < 3; row++){
+
+                    for(int col = 0; col < 3; col++){
+
+                        rotated[col][2 - row] = shape[row][col];
+
+                    }
+                }
+                
             }
             
             shape = rotated;
