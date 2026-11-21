@@ -20,6 +20,8 @@ public class GamePanel extends JPanel {
     private Timer fallTimer;
     
     private boolean gameOver = false;
+    
+    private int score = 0;
 
     public GamePanel() {
 
@@ -32,6 +34,7 @@ public class GamePanel extends JPanel {
         bindKey("DOWN", "moveDown", () -> movePiece(0, 1));
         bindKey("UP", "rotateCW", () -> rotatePiece(true));
         bindKey("Z", "rotateCCW", () -> rotatePiece(false));
+        bindKey("SPACE", "hardDrop", () -> hardDrop());
         
         fallTimer = new Timer(1000, e -> {
 
@@ -55,7 +58,10 @@ public class GamePanel extends JPanel {
 
                     int cleared = board.clearFullLines();
 
+                    updateScore(cleared);
+                    
                     System.out.println("Lines cleared: " + cleared);
+                    System.out.println("Score: " + score);
 
                     piece = PieceFactory.createRandomPiece();
 
@@ -73,6 +79,30 @@ public class GamePanel extends JPanel {
         });
 
         fallTimer.start();  
+    }
+    
+    private void updateScore(int cleared) {
+
+        switch (cleared) {
+
+            case 1:
+                score += 100;
+                break;
+
+            case 2:
+                score += 300;
+                break;
+
+            case 3:
+                score += 500;
+                break;
+
+            case 4:
+                score += 800;
+                break;
+        }
+
+        System.out.println("Score: " + score);
     }
     
     private static final int[][][] I_KICKS = {
@@ -137,6 +167,21 @@ public class GamePanel extends JPanel {
             }
 
         });
+    }
+    
+    private int getGhostY() {
+
+        int ghostY = piece.getY();
+
+        while (board.isValidPosition(
+                piece.getShape(),
+                piece.getX(),
+                ghostY + 1)) {
+
+            ghostY++;
+        }
+
+        return ghostY;
     }
     
     private void movePiece(int dx, int dy) {
@@ -213,6 +258,42 @@ public class GamePanel extends JPanel {
 
         piece.setRotation(oldRotation);
     }
+    
+    private void hardDrop() {
+
+        if (gameOver) {
+            return;
+        }
+
+        int ghostY = getGhostY();
+
+        piece.setPosition(piece.getX(), ghostY);
+
+        board.lockPiece(
+                piece.getShape(),
+                piece.getX(),
+                piece.getY(),
+                piece.getColor()
+        );
+
+        int cleared = board.clearFullLines();
+
+        updateScore(cleared);
+
+        piece = PieceFactory.createRandomPiece();
+
+        if (!board.isValidPosition(
+                piece.getShape(),
+                piece.getX(),
+                piece.getY())) {
+
+            gameOver = true;
+            fallTimer.stop();
+            System.out.println("GAME OVER!");
+        }
+
+        repaint();
+    }
 
     @Override
     protected void paintComponent(Graphics g) {
@@ -239,6 +320,12 @@ public class GamePanel extends JPanel {
             }
         }
         
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 20));
+
+        g.drawString("SCORE", 400, 100);
+        g.drawString(String.valueOf(score), 400, 130);
+        
         if (!gameOver) {
 
             // Draw the current Tetris piece
@@ -264,6 +351,39 @@ public class GamePanel extends JPanel {
 
                     }
 
+                }
+            }
+        }
+        
+        int ghostY = getGhostY();
+
+        g.setColor(new Color(
+                piece.getColor().getRed(),
+                piece.getColor().getGreen(),
+                piece.getColor().getBlue(),
+                70
+        ));
+
+        for (int row = 0; row < piece.getShape().length; row++) {
+
+            for (int col = 0; col < piece.getShape()[row].length; col++) {
+
+                if (piece.getShape()[row][col] == 1) {
+
+                    int x = BOARD_X + (piece.getX() + col) * CELL_SIZE;
+                    int y = BOARD_Y + (ghostY + row) * CELL_SIZE;
+
+                    g.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+
+                    g.setColor(Color.WHITE);
+                    g.drawRect(x, y, CELL_SIZE, CELL_SIZE);
+
+                    g.setColor(new Color(
+                            piece.getColor().getRed(),
+                            piece.getColor().getGreen(),
+                            piece.getColor().getBlue(),
+                            70
+                    ));
                 }
             }
         }
