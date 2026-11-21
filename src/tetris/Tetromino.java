@@ -71,6 +71,19 @@ public abstract class Tetromino {
         rotation = (rotation + 1) % 4;
     }
     
+    public int getRotation() {
+        return rotation;
+    }
+    
+    public void setPosition(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    public void setRotation(int rotation) {
+        this.rotation = rotation;
+    }
+    
     public void moveLeft(){
         x--;
     }
