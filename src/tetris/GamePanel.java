@@ -10,8 +10,8 @@ public class GamePanel extends JPanel {
     private final int COLS = 10;
     private final int ROWS = 20;
 
-    private final int BOARD_X = 60;
-    private final int BOARD_Y = 25;
+    private int BOARD_X;
+    private int BOARD_Y;
 
     private Tetromino piece;
     
@@ -299,6 +299,9 @@ public class GamePanel extends JPanel {
     protected void paintComponent(Graphics g) {
 
         super.paintComponent(g);
+        
+        BOARD_X = (getWidth() - (COLS * CELL_SIZE)) / 2;
+        BOARD_Y = (getHeight() - (ROWS * CELL_SIZE)) / 2;
 
         // Draw the board
         for (int row = 0; row < ROWS; row++) {
@@ -322,9 +325,12 @@ public class GamePanel extends JPanel {
         
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 20));
-
-        g.drawString("SCORE", 400, 100);
-        g.drawString(String.valueOf(score), 400, 130);
+        
+        int scoreX = BOARD_X - 120;
+        int scoreY = BOARD_Y + (ROWS * CELL_SIZE) - 40;
+        
+        g.drawString("SCORE", scoreX, scoreY);
+        g.drawString(String.valueOf(score), scoreX, scoreY + 30);
         
         if (!gameOver) {
 
@@ -341,11 +347,13 @@ public class GamePanel extends JPanel {
 
                         int x = BOARD_X + (piece.getX() + col) * CELL_SIZE;
                         int y = BOARD_Y + (piece.getY() + row) * CELL_SIZE;
+                           
+                        if(y >= BOARD_Y){
+                            g.fillRect(x, y, CELL_SIZE, CELL_SIZE);
 
-                        g.fillRect(x, y, CELL_SIZE, CELL_SIZE);
-
-                        g.setColor(Color.WHITE);
-                        g.drawRect(x, y, CELL_SIZE, CELL_SIZE);
+                            g.setColor(Color.WHITE);
+                            g.drawRect(x, y, CELL_SIZE, CELL_SIZE);
+                        }
 
                         g.setColor(piece.getColor());
 
@@ -373,10 +381,12 @@ public class GamePanel extends JPanel {
                     int x = BOARD_X + (piece.getX() + col) * CELL_SIZE;
                     int y = BOARD_Y + (ghostY + row) * CELL_SIZE;
 
-                    g.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+                    if (y >= BOARD_Y) {
+                        g.fillRect(x, y, CELL_SIZE, CELL_SIZE);
 
-                    g.setColor(Color.WHITE);
-                    g.drawRect(x, y, CELL_SIZE, CELL_SIZE);
+                        g.setColor(Color.WHITE);
+                        g.drawRect(x, y, CELL_SIZE, CELL_SIZE);
+                    }
 
                     g.setColor(new Color(
                             piece.getColor().getRed(),

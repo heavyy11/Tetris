@@ -9,7 +9,7 @@ public abstract class Tetromino {
     
     public Tetromino(){
         x = 3;
-        y = 0;
+        y = -2;
         rotation = 0;
     }
     
