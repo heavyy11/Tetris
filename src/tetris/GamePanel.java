@@ -19,10 +19,17 @@ public class GamePanel extends JPanel {
     private Timer fallTimer;
     
     private boolean gameOver = false;
+    private boolean paused = false;
     
     private int score = 0;
+    private int currentUserId;
+    private ScoreDAO scoreDAO = new ScoreDAO();
+    private boolean scoreSaved = false;
+    private GameSaveDAO gameSaveDAO = new GameSaveDAO();
 
-    public GamePanel() {
+    public GamePanel(int userId) {
+        this(userId, null);
+        this.currentUserId = userId;
 
         setLayout(new FlowLayout(FlowLayout.CENTER));
         boardPanel = new BoardPanel(board);
@@ -55,9 +62,7 @@ public class GamePanel extends JPanel {
 
                 if (board.isAboveBoard(piece.getShape(), piece.getX(), piece.getY())) {
 
-                    gameOver = true;
-                    fallTimer.stop();
-                    System.out.println("GAME OVER!");
+                    endGame();
 
                 } else {
 
@@ -75,19 +80,188 @@ public class GamePanel extends JPanel {
 
                     // Check if the new piece overlaps existing blocks
                     if (!board.isValidPosition(piece.getShape(), piece.getX(), piece.getY())) {
-                        gameOver = true;
-                        fallTimer.stop();
-                        System.out.println("GAME OVER!");
+                        endGame();
+                    }
+                }
+
+            }
+            
+            updateBoardPanel();
+
+        });
+        
+        updateBoardPanel();
+        fallTimer.start();  
+    }
+    public GamePanel(int userId, GameSave save) {
+
+        this.currentUserId = userId;
+
+        setLayout(new FlowLayout(FlowLayout.CENTER));
+
+        boardPanel = new BoardPanel(board);
+        statsPanel = new StatsPanel();
+        nextPanel = new NextPanel();
+
+        add(statsPanel);
+        add(boardPanel);
+        add(nextPanel);
+
+        if (save == null) {
+
+            // Start a completely new game
+            piece = PieceFactory.createRandomPiece();
+            nextPiece = PieceFactory.createRandomPiece();
+
+        } else {
+
+            // Restore the saved game
+            score = save.score;
+
+            board.loadBoardData(save.boardData);
+
+            piece = PieceFactory.createPiece(save.currentPieceType);
+            piece.setPosition(save.currentX, save.currentY);
+            piece.setRotation(save.currentRotation);
+
+            nextPiece = PieceFactory.createPiece(save.nextPieceType);
+
+            if (save.heldPieceType != null) {
+                heldPiece = PieceFactory.createPiece(save.heldPieceType);
+            }
+
+            hasHeldThisTurn = save.hasHeldThisTurn;
+
+            System.out.println("Game restored successfully!");
+        }
+
+        bindKey("LEFT", "moveLeft", () -> movePiece(-1, 0));
+        bindKey("RIGHT", "moveRight", () -> movePiece(1, 0));
+        bindKey("DOWN", "moveDown", () -> movePiece(0, 1));
+        bindKey("UP", "rotateCW", () -> rotatePiece(true));
+        bindKey("Z", "rotateCCW", () -> rotatePiece(false));
+        bindKey("SPACE", "hardDrop", () -> hardDrop());
+        bindKey("C", "hold", () -> holdPiece());
+         
+        fallTimer = new Timer(1000, e -> {
+
+            int newY = piece.getY() + 1;
+
+            if (board.isValidPosition(piece.getShape(), piece.getX(), newY)) {
+
+                piece.moveDown();
+
+            } else {
+
+                if (board.isAboveBoard(piece.getShape(), piece.getX(), piece.getY())) {
+
+                    endGame();
+
+                } else {
+
+                    board.lockPiece(piece.getShape(), piece.getX(), piece.getY(), piece.getColor());
+
+                    int cleared = board.clearFullLines();
+
+                    updateScore(cleared);
+
+                    System.out.println("Lines cleared: " + cleared);
+                    System.out.println("Score: " + score);
+
+                    hasHeldThisTurn = false;
+                    spawnNextPiece();
+
+                    // Check if the new piece overlaps existing blocks
+                    if (!board.isValidPosition(piece.getShape(), piece.getX(), piece.getY())) {
+                        endGame();
                     }
                 }
 
             }
 
             updateBoardPanel();
+
         });
 
-        fallTimer.start();  
+        updateBoardPanel();
+        fallTimer.start();
     }
+    
+    public void restartGame() {
+
+        // Stop the current timer
+        fallTimer.stop();
+
+        // Clear the board
+        board.clearBoard();
+
+        // Reset game variables
+        score = 0;
+        gameOver = false;
+        paused = false;
+        hasHeldThisTurn = false;
+        scoreSaved = false;
+
+        // Clear the hold area
+        heldPiece = null;
+
+        // Generate new pieces
+        piece = PieceFactory.createRandomPiece();
+        nextPiece = PieceFactory.createRandomPiece();
+
+        // Reset the current piece's position
+        piece.setPosition(3, -2);
+        piece.setRotation(0);
+
+        // Update the display
+        updateBoardPanel();
+
+        // Start the game again
+        fallTimer.start();
+    }
+    
+    private void endGame() {
+
+        gameOver = true;
+        fallTimer.stop();
+
+        System.out.println("GAME OVER!");
+
+        if (!scoreSaved) {
+
+            scoreSaved = true;
+
+            try {
+
+                scoreDAO.saveScore(currentUserId, score);
+
+                System.out.println("Score saved successfully!");
+
+            } catch (Exception e) {
+
+                System.out.println("Failed to save score!");
+                e.printStackTrace();
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Your score could not be saved to the database."
+                );
+            }
+        }
+        
+        try {
+
+            gameSaveDAO.deleteSave(currentUserId);
+
+            System.out.println("Old saved game deleted!");
+
+        } catch (Exception e) {
+
+            System.out.println("Failed to delete saved game!");
+            e.printStackTrace();
+        }
+    }
+
     
     private void updateBoardPanel() {
 
@@ -100,6 +274,40 @@ public class GamePanel extends JPanel {
 
         boardPanel.repaint();
         statsPanel.repaint();
+        nextPanel.repaint();
+    }
+    
+    public void saveCurrentGame() {
+
+        // Don't save a game that has already ended
+        if (gameOver) {
+            return;
+        }
+
+        try {
+
+            gameSaveDAO.saveGame(
+                    currentUserId,
+                    score,
+                    board.getBoardData(),
+                    piece,
+                    nextPiece,
+                    heldPiece,
+                    hasHeldThisTurn
+            );
+
+            System.out.println("Game saved successfully!");
+
+        } catch (Exception e) {
+
+            System.out.println("Failed to save game!");
+            e.printStackTrace();
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Your game progress could not be saved."
+            );
+        }
     }
     
     private void updateScore(int cleared) {
@@ -191,7 +399,7 @@ public class GamePanel extends JPanel {
     }
     
     private void movePiece(int dx, int dy) {
-        if (gameOver) return;
+        if (gameOver || paused) return;
         
         int newX = piece.getX() + dx;
         int newY = piece.getY() + dy;
@@ -211,7 +419,7 @@ public class GamePanel extends JPanel {
     }
     
     private void rotatePiece(boolean clockwise) {
-        if (gameOver) return;
+        if (gameOver || paused) return;
 
         // O-piece does not visibly rotate
         if (piece instanceof OPiece) {
@@ -267,7 +475,7 @@ public class GamePanel extends JPanel {
     
     private void hardDrop() {
 
-        if (gameOver) {
+        if (gameOver || paused) {
             return;
         }
 
@@ -294,9 +502,7 @@ public class GamePanel extends JPanel {
                 piece.getX(),
                 piece.getY())) {
 
-            gameOver = true;
-            fallTimer.stop();
-            System.out.println("GAME OVER!");
+            endGame();
         }
 
         updateBoardPanel();
@@ -304,7 +510,7 @@ public class GamePanel extends JPanel {
     
     private void holdPiece() {
 
-        if (gameOver || hasHeldThisTurn) {
+        if (gameOver || hasHeldThisTurn || paused) {
             return;
         }
 
@@ -336,9 +542,7 @@ public class GamePanel extends JPanel {
                 piece.getX(),
                 piece.getY())) {
 
-            gameOver = true;
-            fallTimer.stop();
-            System.out.println("GAME OVER!");
+            endGame();
         }
 
         updateBoardPanel();
@@ -367,6 +571,25 @@ public class GamePanel extends JPanel {
         }
 
         return ghostY;
+    }
+    
+    public void togglePause() {
+
+        if (gameOver) {
+            return;
+        }
+
+        paused = !paused;
+
+        if (paused) {
+            fallTimer.stop();
+        } else {
+            fallTimer.start();
+        }
+    }
+
+    public boolean isPaused() {
+        return paused;
     }
     
 }

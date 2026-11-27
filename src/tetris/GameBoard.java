@@ -130,4 +130,44 @@ public class GameBoard {
 
         return cleared;
     }
+    
+    public void clearBoard() {
+        cells = new Color[ROWS][COLS];
+    }
+    
+    public int[][] getBoardData() {
+
+        int[][] data = new int[ROWS][COLS];
+
+        for (int row = 0; row < ROWS; row++) {
+
+            for (int col = 0; col < COLS; col++) {
+
+                if (cells[row][col] == null) {
+                    data[row][col] = 0;
+                } else {
+                    data[row][col] = cells[row][col].getRGB();
+                }
+
+            }
+        }
+
+        return data;
+    }
+    
+    public void loadBoardData(int[][] data) {
+
+        for (int row = 0; row < ROWS; row++) {
+
+            for (int col = 0; col < COLS; col++) {
+
+                if (data[row][col] == 0) {
+                    cells[row][col] = null;
+                } else {
+                    cells[row][col] = new Color(data[row][col], true);
+                }
+
+            }
+        }
+    }
 }
