@@ -7,9 +7,14 @@ import java.awt.event.*;
 public class GamePanel extends JPanel {
 
     private Tetromino piece;
+    private Tetromino heldPiece = null;
+    private boolean hasHeldThisTurn = false;
+    private Tetromino nextPiece;
     
     private GameBoard board = new GameBoard();
     private BoardPanel boardPanel;
+    private StatsPanel statsPanel;
+    private NextPanel nextPanel;
     
     private Timer fallTimer;
     
@@ -19,11 +24,16 @@ public class GamePanel extends JPanel {
 
     public GamePanel() {
 
-        setLayout(new BorderLayout());
+        setLayout(new FlowLayout(FlowLayout.CENTER));
         boardPanel = new BoardPanel(board);
-        add(boardPanel, BorderLayout.CENTER);
-        boardPanel.setPiece(piece);
+        statsPanel = new StatsPanel();
+        nextPanel = new NextPanel();
+        add(statsPanel);
+        add(boardPanel);
+        add(nextPanel);
+//        boardPanel.setPiece(piece);
         piece = PieceFactory.createRandomPiece();
+        nextPiece = PieceFactory.createRandomPiece();
         
         bindKey("LEFT", "moveLeft", () -> movePiece(-1, 0));
         bindKey("RIGHT", "moveRight", () -> movePiece(1, 0));
@@ -31,6 +41,7 @@ public class GamePanel extends JPanel {
         bindKey("UP", "rotateCW", () -> rotatePiece(true));
         bindKey("Z", "rotateCCW", () -> rotatePiece(false));
         bindKey("SPACE", "hardDrop", () -> hardDrop());
+        bindKey("C", "hold", () -> holdPiece());
         
         fallTimer = new Timer(1000, e -> {
 
@@ -58,8 +69,9 @@ public class GamePanel extends JPanel {
                     
                     System.out.println("Lines cleared: " + cleared);
                     System.out.println("Score: " + score);
-
-                    piece = PieceFactory.createRandomPiece();
+                    
+                    hasHeldThisTurn = false;
+                    spawnNextPiece();
 
                     // Check if the new piece overlaps existing blocks
                     if (!board.isValidPosition(piece.getShape(), piece.getX(), piece.getY())) {
@@ -75,6 +87,19 @@ public class GamePanel extends JPanel {
         });
 
         fallTimer.start();  
+    }
+    
+    private void updateBoardPanel() {
+
+        boardPanel.setPiece(piece);
+        boardPanel.setGhostY(getGhostY());
+        boardPanel.setGameOver(gameOver);
+        statsPanel.setScore(score);
+        statsPanel.setHeldPiece(heldPiece);
+        nextPanel.setPiece(nextPiece);
+
+        boardPanel.repaint();
+        statsPanel.repaint();
     }
     
     private void updateScore(int cleared) {
@@ -163,15 +188,6 @@ public class GamePanel extends JPanel {
             }
 
         });
-    }
-    
-    private void updateBoardPanel() {
-
-        boardPanel.setPiece(piece);
-        boardPanel.setGameOver(gameOver);
-        boardPanel.setScore(score);
-
-        boardPanel.repaint();
     }
     
     private void movePiece(int dx, int dy) {
@@ -269,8 +285,9 @@ public class GamePanel extends JPanel {
         int cleared = board.clearFullLines();
 
         updateScore(cleared);
-
-        piece = PieceFactory.createRandomPiece();
+        
+        hasHeldThisTurn = false;
+        spawnNextPiece();
 
         if (!board.isValidPosition(
                 piece.getShape(),
@@ -283,6 +300,58 @@ public class GamePanel extends JPanel {
         }
 
         updateBoardPanel();
+    }
+    
+    private void holdPiece() {
+
+        if (gameOver || hasHeldThisTurn) {
+            return;
+        }
+
+        // If the hold area is empty
+        if (heldPiece == null) {
+
+            heldPiece = piece;
+            spawnNextPiece();
+
+        } else {
+
+            // Swap the current piece with the held piece
+            Tetromino temp = piece;
+
+            piece = heldPiece;
+            heldPiece = temp;
+
+        }
+
+        // Reset the incoming piece
+        piece.setPosition(3, -2);
+        piece.setRotation(0);
+
+        hasHeldThisTurn = true;
+
+        // Check whether the incoming piece can spawn
+        if (!board.isValidPosition(
+                piece.getShape(),
+                piece.getX(),
+                piece.getY())) {
+
+            gameOver = true;
+            fallTimer.stop();
+            System.out.println("GAME OVER!");
+        }
+
+        updateBoardPanel();
+    }
+    
+    private void spawnNextPiece() {
+
+        piece = nextPiece;
+        nextPiece = PieceFactory.createRandomPiece();
+
+        piece.setPosition(3, -2);
+        piece.setRotation(0);
+
     }
     
     private int getGhostY() {

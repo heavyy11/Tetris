@@ -10,15 +10,17 @@ public class BoardPanel extends JPanel{
     
     private Tetromino piece;
     private GameBoard board;
+    
+    private int ghostY;
 
     private boolean gameOver = false;
-    private int score = 0;
     
     public BoardPanel(GameBoard board) {
 
         this.board = board;
 
         setBackground(Color.BLACK);
+        setPreferredSize(new Dimension(300, 600));
     }
     
     public void setPiece(Tetromino piece) {
@@ -28,24 +30,9 @@ public class BoardPanel extends JPanel{
     public void setGameOver(boolean gameOver) {
         this.gameOver = gameOver;
     }
-
-    public void setScore(int score) {
-        this.score = score;
-    }
     
-    private int getGhostY() {
-
-        int ghostY = piece.getY();
-
-        while (board.isValidPosition(
-                piece.getShape(),
-                piece.getX(),
-                ghostY + 1)) {
-
-            ghostY++;
-        }
-
-        return ghostY;
+    public void setGhostY(int ghostY) {
+        this.ghostY = ghostY;
     }
     
     @Override
@@ -75,15 +62,6 @@ public class BoardPanel extends JPanel{
 
             }
         }
-
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 20));
-
-        int scoreX = BOARD_X - 120;
-        int scoreY = BOARD_Y + (ROWS * CELL_SIZE) - 40;
-
-        g.drawString("SCORE", scoreX, scoreY);
-        g.drawString(String.valueOf(score), scoreX, scoreY + 30);
 
         if (!gameOver) {
 
@@ -115,8 +93,6 @@ public class BoardPanel extends JPanel{
                 }
             }
         }
-
-        int ghostY = getGhostY();
 
         g.setColor(new Color(
                 piece.getColor().getRed(),
